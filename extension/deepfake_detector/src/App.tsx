@@ -5,7 +5,7 @@ import ReactCrop, {
   makeAspectCrop,
   Crop,
   PixelCrop,
-  convertToPixelCrop,
+  // convertToPixelCrop,
 } from 'react-image-crop'
 import { canvasPreview } from './canvasPreview'
 import { useDebounceEffect } from './useDebounceEffect'
@@ -35,31 +35,19 @@ function centerAspectCrop(
   )
 }
 
+
+
 export default function App() {
   const [imgSrc, setImgSrc] = useState('')
   const previewCanvasRef = useRef<HTMLCanvasElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
-  const hiddenAnchorRef = useRef<HTMLAnchorElement>(null)
-  const blobUrlRef = useRef('')
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
-  const [scale, setScale] = useState(1)
-  const [rotate, setRotate] = useState(0)
-  const [aspect, setAspect] = useState<number | undefined>(undefined)
+
+  const aspect = undefined
 
   const [ results, setResults ] = useState<object>({})
 
-  // THIS HANDLES FILE UPLOAD
-  // function onSelectFile(e: React.ChangeEvent<HTMLInputElement>) {
-  //   if (e.target.files && e.target.files.length > 0) {
-  //     setCrop(undefined) // Makes crop preview update between images.
-  //     const reader = new FileReader()
-  //     reader.addEventListener('load', () =>
-  //       setImgSrc(reader.result?.toString() || ''),
-  //     )
-  //     reader.readAsDataURL(e.target.files[0])
-  //   }
-  // }
   const onScreenshot = async () => {
     setCrop(undefined)
     // @ts-ignore
@@ -115,25 +103,6 @@ export default function App() {
     const res = await evalImage(blob)
     console.log("FINAL: ", res)
     setResults(res)
-    if (blobUrlRef.current) {
-      URL.revokeObjectURL(blobUrlRef.current)
-    }
-    // THIS IS THE INFORMATION THAT PYTHON NEEDS
-    // blobUrlRef.current = URL.createObjectURL(blob)
-    // const img = new Image()
-    // img.src = blobUrlRef.current
-    // console.log(img)
-
-    // -------------------
-    // const res = await evalImage(blobUrlRef.current)
-    // console.log("END: ", res)
-    // -------------------
-
-    if (hiddenAnchorRef.current) {
-      hiddenAnchorRef.current.href = blobUrlRef.current
-      console.log("HIDDEN ANCHOR REF: ", hiddenAnchorRef.current)
-      hiddenAnchorRef.current.click()
-    }
   }
 
   useDebounceEffect(
@@ -149,84 +118,37 @@ export default function App() {
           imgRef.current,
           previewCanvasRef.current,
           completedCrop,
-          scale,
-          rotate,
         )
       }
     },
     100,
-    [completedCrop, scale, rotate],
+    [completedCrop],
   )
 
-  function handleToggleAspectClick() {
-    if (aspect) {
-      setAspect(undefined)
-    } else {
-      setAspect(16 / 9)
-
-      if (imgRef.current) {
-        const { width, height } = imgRef.current
-        const newCrop = centerAspectCrop(width, height, 16 / 9)
-        setCrop(newCrop)
-        // Updates the preview
-        setCompletedCrop(convertToPixelCrop(newCrop, width, height))
-      }
-    }
-  }
-
   return (
-    <div className="App">
-      <div className="Crop-Controls">
-        {/* <input type="file" accept="image/*" onChange={onSelectFile} /> */}
-        <button onClick={onScreenshot}>Screenshot</button>
-        <div>
-          <label htmlFor="scale-input">Scale: </label>
-          <input
-            id="scale-input"
-            type="number"
-            step="0.1"
-            value={scale}
-            disabled={!imgSrc}
-            onChange={(e) => setScale(Number(e.target.value))}
-          />
-        </div>
-        <div>
-          <label htmlFor="rotate-input">Rotate: </label>
-          <input
-            id="rotate-input"
-            type="number"
-            value={rotate}
-            disabled={!imgSrc}
-            onChange={(e) =>
-              setRotate(Math.min(180, Math.max(-180, Number(e.target.value))))
-            }
-          />
-        </div>
-        <div>
-          <button onClick={handleToggleAspectClick}>
-            Toggle aspect {aspect ? 'off' : 'on'}
-          </button>
-        </div>
-      </div>
+    <div className="bg-zinc-900 text-white p-6 flex flex-col justify-center items-center w-[500px]">
+      <h3 className='text-xs text-white/20 self-start'>Welcome to Sherlock. Click the button below to begin.</h3>
+      <button className="text-lg bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl w-full my-2 hover:scale-105 transition-transform" onClick={onScreenshot}>Capture Screen</button>
+      <div>
       {!!imgSrc && (
         <ReactCrop
           crop={crop}
           onChange={(_, percentCrop) => setCrop(percentCrop)}
           onComplete={(c) => setCompletedCrop(c)}
           aspect={aspect}
-          // minWidth={400}
-          // minHeight={100}
-          // circularCrop
+          className='rounded-xl drop-shadow-xl'
         >
           <img
             ref={imgRef}
             alt="Crop me"
             src={imgSrc}
-            style={{ transform: `scale(${scale}) rotate(${rotate}deg)`, minWidth: "600px"}}
+            style={{ width: "auto"}}
             onLoad={onImageLoad}
           />
         </ReactCrop>
       )}
+      </div>
+
       {!!completedCrop && (
         <>
           <div>
@@ -235,30 +157,16 @@ export default function App() {
               style={{
                 border: '1px solid black',
                 objectFit: 'contain',
-                maxWidth: "400px"
-                // width: completedCrop.width * 2,
-                // height: completedCrop.height * 2,
+                maxWidth: "300px"
               }}
             />
           </div>
-          {/* THIS WILL TURN INTO THE IMAGE ANALYSIS */}
+          {/* THIS IS THE IMAGE ANALYSIS */}
           <div>
-            <button onClick={onDownloadCropClick}>Download Crop</button>
+            <button className="bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl hover:scale-105 transition-transform" onClick={onDownloadCropClick}>Analyze Image</button>
               <p>
                 {JSON.stringify(results)}
               </p>
-            {/* <a
-              href="#hidden"
-              ref={hiddenAnchorRef}
-              download
-              style={{
-                position: 'absolute',
-                top: '-200vh',
-                visibility: 'hidden',
-              }}
-            >
-              Hidden download
-            </a> */}
           </div>
         </>
       )}
