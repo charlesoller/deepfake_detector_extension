@@ -1,11 +1,9 @@
-import { pipeline } from "@xenova/transformers";
-
-export const evalImage = async (url: any) => {
-    console.log("----------IN FUNCTION------------")
-    console.log("THE URL IS: ", url)
-    const pipe = await pipeline("image-classification", "dima806/deepfake_vs_real_image_detection")
-
-    const res = await pipe(url)
-    console.log("IN FUNCTION, RETURNING: ", res)
+import { HfInference } from "@huggingface/inference"
+const hf = new HfInference("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")
+export const evalImage = async (blob: Blob) => {
+    const res = await hf.imageClassification({
+        data: blob,
+        model: "dima806/deepfake_vs_real_image_detection" //INSERT MODEL HERE
+    })
     return res
 }

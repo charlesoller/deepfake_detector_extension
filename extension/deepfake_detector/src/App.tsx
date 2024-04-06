@@ -11,7 +11,8 @@ import { canvasPreview } from './canvasPreview'
 import { useDebounceEffect } from './useDebounceEffect'
 
 import 'react-image-crop/dist/ReactCrop.css'
-// import { evalImage } from './ml_model'
+import { evalImage } from './ml_model'
+
 // This is to demonstate how to make and center a % aspect crop
 // which is a bit trickier so we use some helper functions.
 function centerAspectCrop(
@@ -45,6 +46,8 @@ export default function App() {
   const [scale, setScale] = useState(1)
   const [rotate, setRotate] = useState(0)
   const [aspect, setAspect] = useState<number | undefined>(undefined)
+
+  const [ results, setResults ] = useState<object>({})
 
   // THIS HANDLES FILE UPLOAD
   // function onSelectFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -109,15 +112,17 @@ export default function App() {
     const blob = await offscreen.convertToBlob({
       type: 'image/png',
     })
-
+    const res = await evalImage(blob)
+    console.log("FINAL: ", res)
+    setResults(res)
     if (blobUrlRef.current) {
       URL.revokeObjectURL(blobUrlRef.current)
     }
     // THIS IS THE INFORMATION THAT PYTHON NEEDS
-    blobUrlRef.current = URL.createObjectURL(blob)
-    const img = new Image()
-    img.src = blobUrlRef.current
-    console.log(img)
+    // blobUrlRef.current = URL.createObjectURL(blob)
+    // const img = new Image()
+    // img.src = blobUrlRef.current
+    // console.log(img)
 
     // -------------------
     // const res = await evalImage(blobUrlRef.current)
@@ -239,10 +244,9 @@ export default function App() {
           {/* THIS WILL TURN INTO THE IMAGE ANALYSIS */}
           <div>
             <button onClick={onDownloadCropClick}>Download Crop</button>
-            <div style={{ fontSize: 12, color: '#666' }}>
-              If you get a security error when downloading try opening the
-              Preview in a new tab (icon near top right).
-            </div>
+              <p>
+                {JSON.stringify(results)}
+              </p>
             {/* <a
               href="#hidden"
               ref={hiddenAnchorRef}
