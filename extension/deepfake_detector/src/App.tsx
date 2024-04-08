@@ -13,6 +13,8 @@ import { useDebounceEffect } from './useDebounceEffect'
 import 'react-image-crop/dist/ReactCrop.css'
 import { evalImage } from './ml_model'
 
+import { PropagateLoader } from 'react-spinners'
+
 // This is to demonstate how to make and center a % aspect crop
 // which is a bit trickier so we use some helper functions.
 function centerAspectCrop(
@@ -43,10 +45,11 @@ export default function App() {
   const imgRef = useRef<HTMLImageElement>(null)
   const [crop, setCrop] = useState<Crop>()
   const [completedCrop, setCompletedCrop] = useState<PixelCrop>()
+  const [ loading, setLoading ] = useState<boolean>(false)
 
   const aspect = undefined
 
-  const [ results, setResults ] = useState<object>({})
+  const [ results, setResults ] = useState<object>([])
 
   const onScreenshot = async () => {
     setCrop(undefined)
@@ -63,6 +66,7 @@ export default function App() {
   }
 
   async function onDownloadCropClick() {
+    setLoading(true)
     const image = imgRef.current
     const previewCanvas = previewCanvasRef.current
     if (!image || !previewCanvas || !completedCrop) {
@@ -101,8 +105,9 @@ export default function App() {
       type: 'image/png',
     })
     const res = await evalImage(blob)
-    console.log("FINAL: ", res)
     setResults(res)
+    console.log(res)
+    setLoading(false)
   }
 
   useDebounceEffect(
@@ -126,11 +131,15 @@ export default function App() {
   )
 
   return (
-    <div className="bg-zinc-900 text-white p-6 flex flex-col justify-center items-center w-[500px]">
-      <h3 className='text-xs text-white/20 self-start'>Welcome to Sherlock. Click the button below to begin.</h3>
-      <button className="text-lg bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl w-full my-2 hover:scale-105 transition-transform" onClick={onScreenshot}>Capture Screen</button>
-      <div>
+    <div className="bg-zinc-900 text-white px-4 py-6 flex flex-col gap-4 justify-center items-center w-[500px]">
+      <div className='bg-zinc-800 w-full p-4 drop-shadow-xl rounded-lg'>
+        <h1 className='font-bold text-4xl bg-gradient-to-r from-indigo-500 to-pink-500 inline-block text-transparent bg-clip-text drop-shadow-xl'>Deepfake Detector</h1>
+        <h3 className='text-xs text-white/20 self-start'>Welcome to Deepfake Detector. Click the button below to begin.</h3>
+        <button className="text-lg bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl w-full mt-4 drop-shadow-xl hover:scale-105 transition-transform" onClick={onScreenshot}>Capture Screen</button>
+      </div>
       {!!imgSrc && (
+      <div className='bg-zinc-800 w-full p-4 drop-shadow-xl rounded-lg'>
+        <p className='text-xs text-white/20 self-start mb-2'>Select a face that you see on screen.</p>
         <ReactCrop
           crop={crop}
           onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -144,14 +153,16 @@ export default function App() {
             src={imgSrc}
             style={{ width: "auto"}}
             onLoad={onImageLoad}
+            className='rounded-xl drop-shadow-xl'
           />
         </ReactCrop>
+        </div>
       )}
-      </div>
 
       {!!completedCrop && (
         <>
-          <div>
+          <div className='bg-zinc-800 w-full p-4 drop-shadow-xl rounded-lg'>
+            <p className='text-xs text-white/20 self-start mb-2'>Preview: </p>
             <canvas
               ref={previewCanvasRef}
               style={{
@@ -159,14 +170,38 @@ export default function App() {
                 objectFit: 'contain',
                 maxWidth: "300px"
               }}
+              className='rounded-xl drop-shadow-xl mx-auto'
             />
           </div>
           {/* THIS IS THE IMAGE ANALYSIS */}
-          <div>
-            <button className="bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl hover:scale-105 transition-transform" onClick={onDownloadCropClick}>Analyze Image</button>
-              <p>
-                {JSON.stringify(results)}
-              </p>
+          <div className='w-full flex flex-col justify-center items-center bg-zinc-800 w-full p-4 drop-shadow-xl rounded-lg'>
+            <button className="text-lg bg-gradient-to-r from-indigo-700 to-pink-700 px-4 py-2 rounded-xl w-full drop-shadow-xl hover:scale-105 transition-transform" onClick={onDownloadCropClick}>Analyze Image</button>
+              <div>
+                { loading ?
+                    <div className='p-4'>
+                      <PropagateLoader color='lightgray'/>
+                    </div>
+                  :
+                  // @ts-ignore
+                  results.length ?
+                    <div className='mt-4'>
+                      {/* {JSON.stringify(results)} */}
+                      {/* @ts-ignore */}
+                      <p className='font-medium text-2xl'>This portrait is most likely <span className='font-bold text-4xl bg-gradient-to-r from-indigo-400 to-pink-400 inline-block text-transparent bg-clip-text'>{results[0].label}</span></p>
+                      <ul className='mt-1 text-white/20'>
+                        <li>
+                          {/* @ts-ignore */}
+                          <p>{results[0].label}: {(results[0].score.toFixed(4)*100).toFixed(2)}%</p>
+                        </li>
+                        <li>
+                          {/* @ts-ignore */}
+                          <p>{results[1].label}: {(results[1].score.toFixed(4)*100).toFixed(2)}%</p>
+                        </li>
+                      </ul>
+                    </div>
+                  : <p className='text-xs text-white/20 self-start mt-2'>Please click the button above to analyze your selected portion of the screen.</p>
+                }
+              </div>
           </div>
         </>
       )}
